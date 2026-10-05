@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SG STEEL - hors ligne</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#f3f5f8;color:#1e2a38}
+header{background:#1e2a38;color:#fff;padding:10px 12px}header b{font-size:16px}header small{display:block;opacity:.7;margin-top:2px}
+nav{display:flex;overflow-x:auto;background:#fff;border-bottom:1px solid #d5dbe3;position:sticky;top:0}
+nav button{flex:none;border:0;background:none;padding:11px 13px;font-size:14px;color:#445}nav button.on{color:#e8742a;border-bottom:3px solid #e8742a;font-weight:600}
+main{padding:10px}input{width:100%;padding:10px;border:1px solid #c5ccd6;border-radius:8px;font-size:15px;margin-bottom:8px}
+.box{overflow-x:auto;background:#fff;border-radius:8px;box-shadow:0 1px 3px #0002}table{border-collapse:collapse;width:100%}
+th,td{padding:8px 9px;border-bottom:1px solid #e6eaf0;text-align:left;vertical-align:top}th{background:#e8edf4;font-size:12px;white-space:nowrap}
+td.n,th.n{text-align:right}tr.c{cursor:pointer}tr.d td{background:#f8fafc;padding:0}tr.d table th{background:#eef2f7}
+.al{color:#c0392b;font-weight:600}.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.k{background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 3px #0002}.k b{display:block;font-size:24px;color:#e8742a}
+td:nth-child(-n+2){white-space:nowrap}.ft{padding:8px 4px;opacity:.7;font-size:12px}
+</style></head><body>
+<header><b id="soc"></b><small id="sub"></small></header><nav id="nav"></nav><main id="m"></main>
+<script>
+const D=/*DATA*/null;
+const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const f=v=>v==null||v===''?'':typeof v==='number'?(Number.isInteger(v)?v:v.toLocaleString('fr-FR',{maximumFractionDigits:2})):v;
+const tb=(cols,rows,cls)=>`<table><thead><tr>${cols.map(c=>`<th class="${c[2]?'n':''}">${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr class="${cls||''}">${cols.map(c=>`<td class="${c[2]?'n':''}">${esc(f(r[c[0]]))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+const LB=[['ref','Réf.'],['designation','Désignation'],['quantite','Qté',1],['qte_livree','Reçue',1],['reste','Reste',1],['prix_unitaire','PU',1]];
+D.bc.forEach(b=>b.lignes.forEach(l=>l.reste=(l.quantite||0)-(l.qte_livree||0)));
+const S={
+ bc:['Bons de commande',[['num','N° BC'],['date','Date'],['tiers_nom','Tiers'],['statut','Statut']],D.bc,LB],
+ bl:['Bons de livraison',[['num','N° BL'],['date','Date'],['type','Type'],['tiers_nom','Tiers'],['bc_num','BC'],['statut','Statut']],D.bl,[LB[0],LB[1],LB[2],LB[5]]],
+ articles:['Articles',[['reference','Référence'],['designation','Désignation'],['type','Type'],['unite','Unité'],['stock','Stock',1],['stock_mini','Mini',1]],D.articles],
+ ordres:['Ordres de production',[['num','N° OF'],['date','Date'],['article','Produit'],['qte_a_fabriquer','Qté',1],['statut','Statut']],D.ordres],
+ tiers:['Clients / Fournisseurs',[['code','Code'],['raison_sociale','Raison sociale'],['type','Type'],['ville','Ville'],['tel','Téléphone']],D.tiers],
+ mouvements:['Mouvements',[['date','Date'],['article','Article'],['sens','Sens'],['quantite','Qté',1],['origine','Origine']],D.mouvements]};
+let cur='home';
+function nav(){$('#nav').innerHTML=[['home','Accueil'],...Object.entries(S).map(([k,v])=>[k,v[0]])].map(([k,l])=>`<button class="${k===cur?'on':''}" data-k="${k}">${l}</button>`).join('');
+ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{cur=b.dataset.k;nav();show()})}
+function show(){const m=$('#m');
+ if(cur==='home'){const al=D.articles.filter(a=>(a.stock_mini||0)>0&&(a.stock||0)<=a.stock_mini);
+  m.innerHTML=`<div class="g">${Object.entries(S).filter(([k])=>k!=='mouvements').map(([k,v])=>`<div class="k"><b>${v[2].length}</b>${v[0]}</div>`).join('')}</div><p class="ft">Application en lecture seule, sans connexion réseau. Les données sont celles de l'export du ${esc(D.date)}.</p>`;return}
+ const [t,cols,rows,det]=S[cur];
+ m.innerHTML=`<input id="q" placeholder="Rechercher dans ${t.toLowerCase()}…"><div class="box" id="bx"></div><p class="ft" id="cnt"></p>`;
+ const draw=()=>{const v=$('#q').value.toLowerCase(),sel=rows.filter(r=>JSON.stringify(r).toLowerCase().includes(v));
+  $('#bx').innerHTML=tb(cols,sel,det?'c':'').replace(/<\/tbody>/,'</tbody>');$('#cnt').textContent=sel.length+' ligne(s)';
+  if(cur==='articles')document.querySelectorAll('#bx tbody tr').forEach((tr,i)=>{const a=sel[i];if((a.stock_mini||0)>0&&(a.stock||0)<=a.stock_mini)tr.classList.add('al')});
+  if(det)document.querySelectorAll('#bx tbody tr.c').forEach((tr,i)=>tr.onclick=()=>{const nx=tr.nextElementSibling;if(nx&&nx.classList.contains('d'))return nx.remove();
+   const r=sel[i],x=document.createElement('tr');x.className='d';x.innerHTML=`<td colspan="${cols.length}">${r.remarque?`<div style="padding:8px">${esc(r.remarque).replace(/\n/g,'<br>')}</div>`:''}${tb(det,r.lignes)}</td>`;tr.after(x)})};
+ $('#q').oninput=draw;draw()}
+$('#soc').textContent=D.societe;$('#sub').textContent='Consultation hors ligne - données du '+D.date;nav();show();
+</script></body></html>
